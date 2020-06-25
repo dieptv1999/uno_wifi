@@ -21,12 +21,13 @@
 #define FIREBASE_AUTH "IUYVzuJnTydTT4TRwptOuP2QJ5Eyzzrzcffi0Mzr"
 #define R1 8200
 #define Vin 5
-#define LED_PIN1 12// là chân D6
-#define LED_PIN2 13// chân D7
+#define LED_PIN1 15// là chân D6
+#define LED_PIN2 0// chân D7
 #define M 100000
 
  
-String pos="20114:106163";
+//String pos="20114:106163";
+String pos="21032:105796";
 const int quangtro=A0;
 const int DHTTYPE = DHT11;
 const int DHTPIN = 2; //chân D9
@@ -47,6 +48,8 @@ void setup()
   timeClient.begin();
   timeClient.setTimeOffset(25200);
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  setStatusPos();
+  delay(2000);
   Firebase.stream("/status/" + pos);
   pinMode(quangtro,INPUT);
   pinMode(LED_PIN1,OUTPUT);
@@ -58,11 +61,11 @@ void setup()
 
 void loop()
 {  
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
   /**********************************************************************************/
   unsigned long curr=(unsigned long)millis();
   if (curr - cycle1 > time_collection){
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
     timeClient.update();
     String formattedDate = timeClient.getFormattedDate();
     /***********************************/
@@ -155,6 +158,7 @@ String binToString(byte *inputData, int dataLength) {
   return String(asciiString);
 }
 
+//*****************************************************************************
 void wifiConnect()
 {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);             // Connect to the network
@@ -172,4 +176,30 @@ void wifiConnect()
   Serial.println("Connection established!");
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
+}
+//*************************************************************************************
+void setStatusPos(){
+  if (Firebase.get("/status/" + pos).isNullString()){
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    root["LED1"]=0;
+    root["LED2"]=0;
+    root["TIME_COLLECTION"]=time_collection;
+    Firebase.set("/status/" + pos, root);
+    if (Firebase.success())
+    {
+      Serial.println("SET JSON STATUS");
+      Serial.println("PASSED");
+      Serial.println();
+    }else {
+      Serial.println("SET STATUS FAILED");
+      Serial.println("------------------------------------");
+      Serial.println();
+    }
+    /***********************************/
+    if (Firebase.failed()) {
+      Serial.println(Firebase.error());
+      Serial.print("set status fail!");
+    }
+  }
 }
